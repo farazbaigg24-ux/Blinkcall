@@ -1,5 +1,5 @@
 {
-  "name": "blindcall",
+  "name": "Blindcall",
   "version": "1.0.0",
   "description": "Anonymous voice call app",
   "main": "server.js",
