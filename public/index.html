@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Blindcall — Anonymous Voice Calls</title>
+  <style>
+    :root{
+      --bg:#09010f;
+      --surface:#110a1e;
+      --surface2:#1a1028;
+      --border:#2a1540;
+      --border2:#3d1f5a;
+      --pink:#ff2d9b;
+      --purple:#9b30ff;
+      --pink-dim:rgba(255,45,155,0.15);
+      --purple-dim:rgba(155,48,255,0.15);
+      --text:#f0e6ff;
+      --text-mid:#8a6aaa;
+      --text-dim:#3d2555;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+
+    /* ===== PARTICLES ===== */
+    #particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .particle{position:absolute;border-radius:50%;animation:particleRise linear infinite;opacity:0}
+    @keyframes particleRise{
+      0%{transform:translateY(100vh) scale(0);opacity:0}
+      10%{opacity:1}
+      90%{opacity:0.4}
+      100%{transform:translateY(-100px) scale(1.5);opacity:0}
+    }
+
+    /* Background glows */
+    .bg-glow{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+    .glow1{width:500px;height:500px;background:radial-gradient(circle,rgba(155,48,255,0.12),transparent 70%);top:-100px;right:-100px;animation:floatGlow 10s ease-in-out infinite}
+    .glow2{width:400px;height:400px;background:radial-gradient(circle,rgba(255,45,155,0.1),transparent 70%);bottom:-100px;left:-100px;animation:floatGlow 13s ease-in-out infinite reverse}
+    @keyframes floatGlow{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-30px)}}
+
+    /* ===== HEADER ===== */
+    header{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(9,1,15,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+    .logo{font-size:1.3rem;font-weight:900;letter-spacing:-1px}
+    .logo span{background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .online-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;background:var(--pink-dim);border:1px solid rgba(255,45,155,0.3);border-radius:100px;font-size:0.72rem;color:var(--pink)}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--pink);box-shadow:0 0 8px var(--pink);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.3;transform:scale(0.6)}}
+
+    /* ===== SCREENS ===== */
+    #app{position:relative;z-index:5;padding-top:60px}
+    .screen{display:none}
+    .screen.active{display:flex;flex-direction:column}
+    .screen.fade-in{animation:fadeIn 0.4s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ===== HOME ===== */
+    #home{min-height:calc(100vh - 60px);align-items:center;justify-content:center;text-align:center;padding:30px 20px;gap:24px}
+    .badge{display:inline-block;padding:6px 16px;background:var(--purple-dim);border:1px solid rgba(155,48,255,0.3);border-radius:100px;font-size:0.72rem;color:var(--purple);animation:fadeIn 0.6s ease both}
+
+    /* Typing animation */
+    .hero-title{font-size:clamp(2.2rem,7vw,4.5rem);font-weight:900;line-height:1.05;letter-spacing:-2px;min-height:3.2em}
+    .hero-title .line1{display:block;color:var(--text)}
+    .hero-title .line2{display:block;background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(255,45,155,0.4))}
+    .hero-title .line3{display:block;color:var(--text);opacity:0.3}
+    .cursor{display:inline-block;width:3px;height:0.85em;background:var(--pink);margin-left:2px;vertical-align:middle;animation:blink 0.8s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+    .hero-sub{font-size:0.92rem;color:var(--text-mid);max-width:400px;line-height:1.7;animation:fadeIn 0.6s ease 0.3s both}
+    .stats{display:flex;gap:24px;align-items:center;animation:fadeIn 0.6s ease 0.4s both}
+    .stat{text-align:center}
+    .stat-n{font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block}
+    .stat-l{font-size:0.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+    .divider{width:1px;height:32px;background:var(--border2)}
+
+    /* Interests */
+    .interests-section{width:100%;max-width:540px;animation:fadeIn 0.6s ease 0.5s both}
+    .section-label{font-size:0.62rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;text-align:left}
+    .tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+    .tag{padding:6px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);color:var(--text-dim);font-size:0.75rem;cursor:pointer;transition:all 0.25s}
+    .tag:hover{border-color:rgba(155,48,255,0.5);color:var(--purple)}
+    .tag.on{border-color:var(--pink);background:var(--pink-dim);color:var(--pink);box-shadow:0 0 10px rgba(255,45,155,0.2)}
+    .custom-row{display:flex;gap:8px}
+    .custom-input{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:9px 14px;color:var(--text);font-size:0.8rem;outline:none;transition:border-color 0.2s}
+    .custom-input:focus{border-color:rgba(155,48,255,0.5)}
+    .custom-input::placeholder{color:var(--text-dim)}
+    .btn-add{padding:9px 16px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--purple);font-size:0.8rem;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+    .btn-add:hover{border-color:var(--purple)}
+
+    /* Glowing animated button */
+    .btn-start-wrap{position:relative;animation:fadeIn 0.6s ease 0.6s both}
+    .btn-start{position:relative;padding:16px 48px;background:linear-gradient(135deg,var(--purple),var(--pink));border:none;border-radius:14px;color:#fff;font-weight:900;font-size:1rem;cursor:pointer;transition:all 0.3s;z-index:1}
+    .btn-start::before{content:'';position:absolute;inset:-2px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--pink));z-index:-1;filter:blur(12px);opacity:0.6;animation:glowPulse 2s ease-in-out infinite}
+    @keyframes glowPulse{0%,100%{opacity:0.6;filter:blur(12px)}50%{opacity:1;filter:blur(20px)}}
+    .btn-start:hover{transform:translateY(-3px) scale(1.03)}
+    .btn-start:active{transform:translateY(-1px) scale(1.01)}
+    .disclaimer{font-size:0.7rem;color:var(--text-dim);animation:fadeIn 0.6s ease 0.7s both}
+    .chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;padding:0 20px 40px;animation:fadeIn 0.6s ease 0.8s both}
+    .chip{display:flex;align-items:center;gap:7px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:0.76rem;color:var(--text-mid);transition:all 0.2s}
+    .chip:hover{border-color:var(--border2);color:var(--text)}
+
+    /* ===== SEARCHING ===== */
+    #searching{min-height:calc(100vh - 60px);align-items:center;justify-content:center;gap:24px;text-align:center}
+    .spin-wrap{position:relative;width:120px;height:120px}
+    .spin-ring{position:absolute;inset:0;border-radius:50%;border:2px solid transparent}
+    .s1{border-top-color:var(--purple);animation:spin 1.4s linear infinite}
+    .s2{inset:16px;border-right-color:var(--pink);animation:spin 2s linear infinite reverse}
+    .s3{inset:32px;border-bottom-color:var(--purple);animation:spin 1s linear infinite}
+    .spin-center{position:absolute;inset:44px;background:var(--surface2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:1px solid var(--border2)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .search-title{font-size:1.6rem;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .search-sub{font-size:0.8rem;color:var(--text-dim)}
+    .btn-cancel{padding:9px 22px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text-dim);font-size:0.82rem;cursor:pointer;transition:all 0.2s}
+    .btn-cancel:hover{border-color:var(--pink);color:var(--pink)}
+
+    /* ===== CHAT ===== */
+    #chat{min-height:calc(100vh - 60px);padding:16px;gap:14px}
+    .disc-bar{display:none;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,45,155,0.06);border:1px solid rgba(255,45,155,0.2);border-radius:10px;font-size:0.8rem;color:var(--pink)}
+    .disc-bar.show{display:flex}
+    .chat-grid{display:grid;grid-template-columns:1fr 340px;gap:14px;flex:1}
+    @media(max-width:780px){.chat-grid{grid-template-columns:1fr}}
+    .voice-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;overflow:hidden}
+    .voice-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--purple),var(--pink),transparent);opacity:0.5}
+    .status{padding:4px 12px;border-radius:100px;font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700}
+    .s-connecting{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(155,48,255,0.3)}
+    .s-connected{background:var(--pink-dim);color:var(--pink);border:1px solid rgba(255,45,155,0.3)}
+    .avatar-wrap{position:relative;width:110px;height:110px}
+    .avatar{width:100%;height:100%;border-radius:50%;background:var(--surface2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:2.8rem;position:relative;z-index:2}
+    .ripple-wrap{position:absolute;inset:-14px;border-radius:50%}
+    .rr{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--pink);opacity:0}
+    .speaking .rr:nth-child(1){animation:rpl 2s ease-out infinite}
+    .speaking .rr:nth-child(2){animation:rpl 2s ease-out 0.4s infinite}
+    .speaking .rr:nth-child(3){animation:rpl 2s ease-out 0.8s infinite}
+    @keyframes rpl{0%{transform:scale(0.8);opacity:0.7}100%{transform:scale(1.9);opacity:0}}
+    .stranger-name{font-size:1.1rem;font-weight:900;letter-spacing:-0.5px}
+    .timer{font-size:0.85rem;font-weight:700;color:var(--text-dim);letter-spacing:2px}
+    .waveform{display:flex;align-items:center;gap:3px;height:44px}
+    .wb{width:4px;background:linear-gradient(to top,var(--purple),var(--pink));border-radius:3px;opacity:0.2;height:6px;transition:height 0.08s}
+    .wf-active .wb{opacity:0.9}
+    .mic-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+    .mic-btn{width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.5rem;transition:all 0.2s}
+    .mic-on{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;box-shadow:0 0 22px rgba(255,45,155,0.4)}
+    .mic-muted{background:var(--surface2);color:var(--pink);border:1px solid rgba(255,45,155,0.4)}
+    .mic-label{font-size:0.68rem;color:var(--text-dim)}
+    .action-row{display:flex;gap:10px;width:100%}
+    .btn-next{flex:1;padding:11px;background:var(--surface2);border:1px solid var(--border2);border-radius:11px;color:var(--text);font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.2s}
+    .btn-next:hover{border-color:var(--purple);color:var(--purple)}
+    .btn-rep{padding:11px 16px;background:transparent;border:1px solid rgba(255,45,155,0.3);border-radius:11px;color:var(--pink);font-weight:700;font-size:0.88rem;cursor:pointer}
+    .chat-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .chat-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--pink),var(--purple),transparent);opacity:0.5}
+    .chat-top{padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:0.88rem;display:flex;align-items:center;gap:8px}
+    .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:260px;max-height:400px}
+    .msgs::-webkit-scrollbar{width:3px}
+    .msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+    .msg{max-width:82%;padding:9px 13px;border-radius:13px;font-size:0.82rem;line-height:1.5;word-break:break-word;animation:msgIn 0.2s ease both}
+    @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .msg.me{align-self:flex-end;background:linear-gradient(135deg,rgba(155,48,255,0.15),rgba(255,45,155,0.1));border:1px solid rgba(255,45,155,0.25);color:var(--pink);border-bottom-right-radius:3px}
+    .msg.them{align-self:flex-start;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-bottom-left-radius:3px}
+    .msg.sys{align-self:center;background:transparent;color:var(--text-dim);font-size:0.72rem;border:none;font-style:italic}
+    .chat-input-row{padding:10px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:flex-end}
+    .chat-ta{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:11px;padding:9px 13px;color:var(--text);font-size:0.82rem;outline:none;resize:none;font-family:inherit;transition:border-color 0.2s}
+    .chat-ta:focus{border-color:rgba(155,48,255,0.4)}
+    .chat-ta::placeholder{color:var(--text-dim)}
+    .send-btn{width:40px;height:40px;background:linear-gradient(135deg,var(--purple),var(--pink));border:none;border-radius:10px;cursor:pointer;color:#fff;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+    .send-btn:hover{transform:scale(1.08);box-shadow:0 0 14px rgba(255,45,155,0.4)}
+
+    /* ===== MODAL ===== */
+    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:20px}
+    .modal-bg.open{display:flex}
+    .modal{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:28px;max-width:400px;width:100%;animation:fadeIn 0.3s ease both}
+    .modal-title{font-size:1.2rem;font-weight:900;color:var(--pink);margin-bottom:6px}
+    .modal-sub{font-size:0.8rem;color:var(--text-dim);margin-bottom:18px;line-height:1.6}
+    .report-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+    .ropt{padding:10px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:9px;color:var(--text-mid);cursor:pointer;font-size:0.82rem;text-align:left;transition:all 0.2s;font-family:inherit}
+    .ropt:hover,.ropt.on{border-color:var(--pink);color:var(--pink);background:var(--pink-dim)}
+    .modal-btns{display:flex;gap:10px;justify-content:flex-end}
+    .btn-mcancel{padding:9px 18px;background:transparent;border:1px solid var(--border2);border-radius:9px;color:var(--text-dim);font-size:0.82rem;cursor:pointer;font-family:inherit}
+    .btn-mrep{padding:9px 18px;background:var(--pink-dim);border:1px solid var(--pink);border-radius:9px;color:var(--pink);font-weight:700;font-size:0.82rem;cursor:pointer;font-family:inherit}
+
+    /* ===== TOAST ===== */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 20px;font-size:0.8rem;z-index:300;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+    .toast.ok{border-color:var(--purple);color:var(--purple)}
+    .toast.err{border-color:var(--pink);color:var(--pink)}
+    audio{display:none}
+  </style>
+</head>
+<body>
+
+<!-- Particles -->
+<div id="particles"></div>
+
+<!-- Background glows -->
+<div class="bg-glow glow1"></div>
+<div class="bg-glow glow2"></div>
+
+<header>
+  <div class="logo">Blind<span>call</span></div>
+  <div class="online-pill">
+    <div class="dot"></div>
+    <span id="online-count">0 online</span>
+  </div>
+</header>
+
+<div id="app">
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="badge">✦ No face. No name. Just your voice.</div>
+
+    <h1 class="hero-title">
+      <span class="line1" id="line1"></span>
+      <span class="line2" id="line2"></span>
+      <span class="line3" id="line3"></span>
+    </h1>
+
+    <p class="hero-sub">Random anonymous voice calls with strangers worldwide. No account, no camera — just your voice in the dark.</p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-n" id="stat-online">0</span>
+        <span class="stat-l">Online</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat">
+        <span class="stat-n">100%</span>
+        <span class="stat-l">Anonymous</span>
+      </div>
+      <div class="divider"></div>
+      <div class="stat">
+        <span class="stat-n">Free</span>
+        <span class="stat-l">Forever</span>
+      </div>
+    </div>
+
+    <div class="interests-section">
+      <div class="section-label">Match by interest (optional)</div>
+      <div class="tags" id="tags">
+        <div class="tag" data-tag="music">🎵 Music</div>
+        <div class="tag" data-tag="gaming">🎮 Gaming</div>
+        <div class="tag" data-tag="movies">🎬 Movies</div>
+        <div class="tag" data-tag="sports">⚽ Sports</div>
+        <div class="tag" data-tag="tech">💻 Tech</div>
+        <div class="tag" data-tag="art">🎨 Art</div>
+        <div class="tag" data-tag="travel">✈️ Travel</div>
+        <div class="tag" data-tag="food">🍜 Food</div>
+        <div class="tag" data-tag="anime">⛩️ Anime</div>
+        <div class="tag" data-tag="fitness">💪 Fitness</div>
+        <div class="tag" data-tag="books">📚 Books</div>
+        <div class="tag" data-tag="language">🗣️ Language</div>
+      </div>
+      <div class="custom-row">
+        <input class="custom-input" id="custom-input" type="text" placeholder="Add your interest..." maxlength="20"/>
+        <button class="btn-add" id="btn-add">+ Add</button>
+      </div>
+    </div>
+
+    <div class="btn-start-wrap">
+      <button class="btn-start" id="start-btn">📞 Start Blind Call</button>
+    </div>
+    <span class="disclaimer">No signup · No camera · Free forever</span>
+
+    <div class="chips">
+      <div class="chip">🙈 No Camera</div>
+      <div class="chip">🎙️ Voice Only</div>
+      <div class="chip">🎭 Anonymous</div>
+      <div class="chip">💬 Live Chat</div>
+      <div class="chip">⏭️ Skip Anytime</div>
+      <div class="chip">🌍 Worldwide</div>
+    </div>
+  </div>
+
+  <!-- SEARCHING -->
+  <div id="searching" class="screen">
+    <div class="spin-wrap">
+      <div class="spin-ring s1"></div>
+      <div class="spin-ring s2"></div>
+      <div class="spin-ring s3"></div>
+      <div class="spin-center">📞</div>
+    </div>
+    <div class="search-title">Finding stranger...</div>
+    <p class="search-sub">Matching you with someone worldwide</p>
+    <button class="btn-cancel" id="btn-cancel">Cancel</button>
+  </div>
+
+  <!-- CHAT -->
+  <div id="chat" class="screen">
+    <div id="disc-bar" class="disc-bar">
+      <span>⚠️ Stranger disconnected</span>
+      <button class="btn-next" id="disc-next" style="width:auto;padding:5px 14px;font-size:0.78rem">Find New →</button>
+    </div>
+    <div class="chat-grid">
+      <div class="voice-card">
+        <div id="vstatus" class="status s-connecting">Connecting...</div>
+        <div class="avatar-wrap">
+          <div class="avatar">🎭</div>
+          <div class="ripple-wrap" id="ripple">
+            <div class="rr"></div>
+            <div class="rr"></div>
+          
