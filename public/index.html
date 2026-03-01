@@ -308,11 +308,27 @@
   document.getElementById('custom-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTag()});
 
   // Search
-  async function startSearch(){try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});show('searching');socket.emit('join',{interests})}catch(e){toast('Mic access denied','err')}}
+  async function startSearch(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      toast('Use Chrome browser for voice calls','err');return;
+    }
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+      show('searching');
+      socket.emit('join',{interests});
+    }catch(e){
+      if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){
+        toast('Allow microphone in browser settings!','err');
+      }else if(e.name==='NotFoundError'){
+        toast('No microphone found on this device','err');
+      }else{
+        toast('Mic error — try Chrome browser','err');
+      }
+    }
+  }
   function cancelSearch(){socket.emit('leave');show('home')}
 
   // Socket
   socket.on('online-count',n=>{document.getElementById('online-count').textContent=n+' online';document.getElementById('stat-online').textContent=n});
   socket.on('waiting',()=>show('searching'));
-  socket.on('matched',async({partnerId:pid,isInitiator:init})=>{partnerId=pid;initiator=init;show('chat');document.getElementById('disc-bar').classList.remove('show');clearMsgs();sysMsg('Connected! Say hello 👋');setStatus('Connecting...','s-connecting');startTimer();await setupPeer();if(initiator){const o=await peer.createOffer();await peer.setLocalDescription(o);socket.emit('signal',{to:pid,signal:{type:'offer',sdp:o}})}});
-  socket.on('signal',async({from,signal})=>{if(!peer)return;if(signal.type==='offer'){await peer.setRemoteDescription(new RTCSessionDescription(signal.sdp));const a=await peer.createAnswer();await peer.setLocalDescription(a);socket.emit('signal',{to:from,signal:{type:'answer',sdp:a}})}else if(signal.type==='answer'){await peer.setRemoteDescription(new RTC
+  socket.on('matched',async({partnerId:pid,isInitiator:init})=>{partnerId=pid;initiator=init;show('chat');document.getElementById('disc-bar').classList.remove('show');clearMsgs();sysMsg('Connected! Say hello 👋');setStatus('Connecting...','s-connecting');startTimer();await setupPeer();if(initiator){const o=await peer.createOf
